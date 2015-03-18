@@ -1,0 +1,65 @@
+﻿<Project DefaultTargets="Clean;Build;Test" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <OutputPath>bin</OutputPath>
+    <ExeOutputPath>bin</ExeOutputPath>
+    <UnitOutputPath>obj</UnitOutputPath>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <PasFile Include="*.pas"/>
+  </ItemGroup>
+
+  <Target Name="Clean">
+    <ItemGroup>
+      <FileToClean Include="$(ExeOutputPath)\*.exe" />
+      <FileToClean Include="*.log" Exclude="build.log" />
+      <FileToClean Include="$(UnitOutputPath)\*.*" />
+      <FileToClean Include="*.out" />
+    </ItemGroup>
+    <Delete Files="@(FileToClean)" />
+    <RemoveDir Directories="$(OutputPath);$(UnitOutputPath)" />
+  </Target>
+  
+  <Target Name="Build">
+    <MakeDir Directories="$(OutputPath);$(UnitOutputPath)" />
+    <Message Text="building: %(PasFile.Identity)" Importance="high" />
+    <MSBuild Projects="$(MSBuildProjectFile)"
+             Targets="BuildFPC"
+             Properties="PasFile=%(PasFile.Filename)%(PasFile.Extension);ProjectDirectory=%(PasFile.RelativeDir)" />
+  </Target>
+  
+  <Target Name="BuildFPC">
+    <PropertyGroup>
+      <ProjectDirectory Condition=" '$(ProjectDirectory)' == '' ">$(MSBuildProjectDirectory)</ProjectDirectory>
+      <!--
+      -Twin32    Windows 32 Bit
+      -Tlinux    Linux
+      -Mfpc      Free Pascal dialect (default)
+      -Mobjfpc   FPC mode with Object Pascal support
+      -Mdelphi   Delphi 7 compatibility mode
+      -a -Anasmwin32
+      -->
+      <FpcOptions>-Twin32 -Mobjfpc -O3 -FE$(ExeOutputPath) -FU$(UnitOutputPath)</FpcOptions>
+    </PropertyGroup>  
+    <Message Text="building: $(PasFile) in $(ProjectDirectory) output-path $(ExeOutputPath)" Importance="high" />
+    <Exec Command="fpc $(FpcOptions) $(PasFile)" WorkingDirectory="$(ProjectDirectory)" StandardOutputImportance="high" />
+  </Target>
+
+  <Target Name="Test">
+    <ItemGroup>
+      <RunFile Include="$(ExeOutputPath)\*.exe" />
+    </ItemGroup>
+    <!--<WriteLinesToFile Lines="abcde;12345" File="..\bin\testdata.txt" Overwrite="true" />-->
+    <MSBuild Projects="$(MSBuildProjectFile)"
+             Targets="RunCommand"
+             Properties="RunFileCommand=%(RunFile.Identity);OutFile=%(RunFile.Filename).out" />
+  </Target>
+
+  <Target Name="RunCommand">
+    <!--<Message Text="Running: $(RunFileCommand)" Importance="high" />-->
+    <!--<Exec Command="$(RunFileCommand) &gt; $(OutFile)" StandardOutputImportance="high" />-->
+    <Exec Command="$(RunFileCommand)" StandardOutputImportance="high" />
+  </Target>
+
+</Project>
